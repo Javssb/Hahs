@@ -75,8 +75,42 @@ let candles=[];
 // 📡 generate OHLC gold candles (realistic simulation)
 function loadData(){
 
-let base=2350;
-candles=[];
+let prices = [];
+let lastPrice = 2350;
+
+async function fetchGold(){
+
+try {
+const res = await fetch("https://api.metals.live/v1/spot/gold");
+const data = await res.json();
+
+lastPrice = data.price || data[0][1];
+
+} catch(e) {
+lastPrice += (Math.random()-0.5)*2;
+}
+
+}
+
+async function loadData(){
+
+prices = [];
+
+setInterval(async ()=>{
+
+await fetchGold();
+
+if(prices.length > 120){
+prices.shift();
+}
+
+prices.push(lastPrice);
+
+drawChart();
+
+}, 3000);
+
+}
 
 for(let i=0;i<120;i++){
 
