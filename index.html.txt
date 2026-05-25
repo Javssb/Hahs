@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gold Live Trading Platform</title>
+
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:#050816;
+color:white;
+}
+
+header{
+padding:15px;
+text-align:center;
+background:#111827;
+font-weight:bold;
+}
+
+.container{padding:15px;}
+
+canvas{
+width:100%;
+height:420px;
+background:#0f172a;
+border-radius:10px;
+}
+
+.card{
+background:#111827;
+padding:15px;
+border-radius:15px;
+margin-top:15px;
+}
+
+.buy{color:#22c55e}
+.sell{color:#ef4444}
+.wait{color:#facc15}
+
+button{
+width:100%;
+padding:12px;
+border:none;
+border-radius:10px;
+background:#22c55e;
+color:white;
+font-weight:bold;
+margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+
+<header>🏆 GOLD XAUUSD LIVE AI PLATFORM</header>
+
+<div class="container">
+
+<canvas id="chart"></canvas>
+
+<div class="card">
+<button onclick="runAI()">Run Live AI Signal</button>
+<div id="result">Loading GOLD market...</div>
+</div>
+
+</div>
+
+<script>
+
+let candles=[];
+
+// 📡 generate OHLC gold candles (realistic simulation)
+function loadData(){
+
+let base=2350;
+candles=[];
+
+for(let i=0;i<120;i++){
+
+let open=base;
+let close=open+(Math.random()-0.5)*6;
+let high=Math.max(open,close)+Math.random()*2;
+let low=Math.min(open,close)-Math.random()*2;
+
+candles.push({open,high,low,close});
+
+base=close;
+}
+
+drawChart();
+}
+
+// 📊 draw candlestick chart
+function drawChart(){
+
+let c=document.getElementById("chart");
+let ctx=c.getContext("2d");
+
+c.width=c.offsetWidth;
+c.height=420;
+
+ctx.clearRect(0,0,c.width,c.height);
+
+let max=Math.max(...candles.map(c=>c.high));
+let min=Math.min(...candles.map(c=>c.low));
+
+let step=c.width/candles.length;
+
+candles.forEach((candle,i)=>{
+
+let x=i*step;
+
+let o=c.height-((candle.open-min)/(max-min))*c.height;
+let cl=c.height-((candle.close-min)/(max-min))*c.height;
+let h=c.height-((candle.high-min)/(max-min))*c.height;
+let l=c.height-((candle.low-min)/(max-min))*c.height;
+
+// wick
+ctx.strokeStyle="#999";
+ctx.beginPath();
+ctx.moveTo(x,h);
+ctx.lineTo(x,l);
+ctx.stroke();
+
+// body
+ctx.fillStyle=candle.close>candle.open?"#22c55e":"#ef4444";
+
+ctx.fillRect(
+x-2,
+Math.min(o,cl),
+4,
+Math.abs(o-cl)
+);
+
+});
+
+}
+
+// 📊 indicators
+function ma(data,n=20){
+return data.slice(-n).reduce((a,b)=>a+b)/n;
+}
+
+function rsi(data){
+let gain=0,loss=0;
+
+for(let i=1;i<14;i++){
+let diff=data[i]-data[i-1];
+if(diff>0)gain+=diff;
+else loss+=Math.abs(diff);
+}
+
+let rs=gain/(loss||1);
+return 100-(100/(1+rs));
+}
+
+function macd(data){
+return ma(data,12)-ma(data,26);
+}
+
+// 🔊 alert
+function beep(){
+let ctx=new AudioContext();
+let osc=ctx.createOscillator();
+osc.connect(ctx.destination);
+osc.start();
+osc.stop(ctx.currentTime+0.1);
+}
+
+// 🧠 AI ENGINE
+function runAI(){
+
+let prices=candles.map(c=>c.close);
+let last=prices[prices.length-1];
+
+let r=rsi(prices);
+let avg=ma(prices,20);
+let m=macd(prices);
+let momentum=last-prices[prices.length-5];
+
+let signal="";
+let cls="";
+
+if(last>avg && r<70 && m>0 && momentum>0){
+signal="📈 BUY GOLD (Strong Uptrend)";
+cls="buy";
+beep();
+}
+else if(last<avg && r>30 && m<0 && momentum<0){
+signal="📉 SELL GOLD (Downtrend)";
+cls="sell";
+beep();
+}
+else{
+signal="⚖️ WAIT (Market Sideways)";
+cls="wait";
+}
+
+// backtest simple
+let wins=0,total=0;
+
+for(let i=30;i<prices.length-1;i++){
+
+let slice=prices.slice(0,i);
+
+let signalTest = slice[slice.length-1]>ma(slice,20)?1:-1;
+
+let move=prices[i+1]-prices[i];
+
+if((signalTest===1 && move>0)||(signalTest===-1 && move<0)){
+wins++;
+}
+total++;
+}
+
+let accuracy=(wins/total)*100;
+
+document.getElementById("result").innerHTML=`
+<b>🏆 GOLD PRICE:</b> ${last.toFixed(2)}<br><br>
+
+<b>RSI:</b> ${r.toFixed(2)}<br>
+<b>MA(20):</b> ${avg.toFixed(2)}<br>
+<b>MACD:</b> ${m.toFixed(2)}<br>
+<b>Momentum:</b> ${momentum.toFixed(2)}<br><br>
+
+<b>AI SIGNAL:</b> <span class="${cls}">${signal}</span><br><br>
+
+<b>BACKTEST WIN RATE:</b> ${accuracy.toFixed(2)}%<br><br>
+
+<b>ASSET:</b> XAUUSD GOLD<br>
+<b>MODE:</b> LIVE SIMULATED MARKET ENGINE
+`;
+}
+
+// start
+loadData();
+
+</script>
+
+</body>
+</html>
